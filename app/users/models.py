@@ -56,6 +56,30 @@ class AppUser(AbstractUser):
         verbose_name="Статус доступа",
         help_text="Роль пользователя в команде (участник или администратор).",
     )
+    organizational_unit = models.ForeignKey(
+        "orgstructure.OrganizationalUnit",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="members",
+        verbose_name="Подразделение",
+        help_text="Подразделение, к которому принадлежит пользователь.",
+    )
+    manager = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="subordinates",
+        verbose_name="Руководитель",
+        help_text="Руководитель пользователя в оргструктуре.",
+    )
+    unit_role = models.CharField(
+        max_length=64,
+        blank=True,
+        verbose_name="Роль в подразделении",
+        help_text="Должность или роль пользователя в подразделении.",
+    )
 
     class Meta:
         verbose_name = "Пользователь"

@@ -6,6 +6,8 @@ from app.users.rest.serializers import (
     AppUserPreviewSerializer,
     AppUserRegisterSerializer,
     AppUserUpdateSerializer,
+    UserStatusSerializer,
+    UserUnitInfoSerializer,
 )
 
 
@@ -41,7 +43,48 @@ class AppUserViewSet(
             return [permissions.IsAdminUser()]
         return super().get_permissions()
 
-    @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    @action(
+        detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated]
+    )
     def me(self, request):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAdminUser])
+    def set_status(self, request, pk=None):
+        user = self.get_object()
+        serializer = UserStatusSerializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAdminUser])
+    def set_unit_info(self, request, pk=None):
+        user = self.get_object()
+        serializer = UserUnitInfoSerializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAdminUser])
+    def add_to_team(self, request, pk=None):
+        user = self.get_object()
+        team_id = request.data.get("team_id")
+        if not team_id:
+            return Response({"error": "team_id required"}, status=400)
+        from app.users.models import Team
+
+        try:
+            team = Team.objects.get(id=team_id)
+        except Team.DoesNotExist:
+            return Response({"error": "team not found"}, status=404)
+        user.team = team
+        user.save()
+        return Response({"result": "added to team"})
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAdminUser])
+    def remove_from_team(self, request, pk=None):
+        user = self.get_object()
+        user.team = None
+        user.save()
+        return Response({"result": "removed from team"})
